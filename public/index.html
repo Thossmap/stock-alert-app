@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Stock Alerts</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #111;
+      color: white;
+      padding: 20px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+    }
+    .card {
+      border: 1px solid #444;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    .triggered {
+      background: #300;
+    }
+  </style>
+</head>
+<body>
+  <h1>Stock Alerts</h1>
+
+  <input id="symbol" placeholder="Symbol (AAPL)">
+  <input id="high" placeholder="High price">
+  <input id="low" placeholder="Low price">
+  <button onclick="addAlert()">Add</button>
+
+  <div id="alerts"></div>
+
+<script>
+async function loadAlerts() {
+  const res = await fetch('/alerts')
+  const alerts = await res.json()
+
+  document.getElementById('alerts').innerHTML = alerts.map(a => `
+    <div class="card ${a.triggered ? 'triggered' : ''}">
+      ${a.symbol} | High: ${a.high || '-'} | Low: ${a.low || '-'}
+      <button onclick="resetAlert(${a.id})">Reset</button>
+    </div>
+  `).join('')
+}
+
+async function addAlert() {
+  await fetch('/alerts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      symbol: document.getElementById('symbol').value,
+      high: parseFloat(document.getElementById('high').value),
+      low: parseFloat(document.getElementById('low').value)
+    })
+  })
+  loadAlerts()
+}
+
+async function resetAlert(id) {
+  await fetch('/reset/' + id, { method: 'POST' })
+  loadAlerts()
+}
+
+loadAlerts()
+</script>
+</body>
+</html>
