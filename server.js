@@ -57,24 +57,26 @@ async function checkPrices() {
     )]
 
     for (let symbol of symbols) {
-        try {
-            const response = await axios.get(
-                "https://www.alphavantage.co/query",
-                {
-                    params: {
-                        function: "GLOBAL_QUOTE",
-                        symbol: symbol,
-                        apikey: process.env.ALPHA_VANTAGE_KEY
-                    }
+    try {
+        const response = await axios.get(
+            "https://finnhub.io/api/v1/quote",
+            {
+                params: {
+                    symbol: symbol,
+                    token: process.env.FINNHUB_KEY
                 }
-            )
-
-            if (!response.data["Global Quote"]) {
-                console.log("Alpha Vantage limit or error:", response.data)
-                continue
             }
+        )
 
-            const price = parseFloat(response.data["Global Quote"]["05. price"])
+        const price = response.data.c
+
+        // Finnhub returns 0 or null if there's an issue
+        if (!price || price === 0) {
+            console.log("Finnhub error or empty response:", response.data)
+            continue
+        }
+
+        console.log(`${symbol} current price: ${price}`)
 
             for (let alert of alerts) {
                 if (alert.symbol !== symbol || alert.triggered) continue
