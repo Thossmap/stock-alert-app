@@ -49,46 +49,60 @@ app.post('/reset/:id', (req, res) => {
 async function checkPrices() {
     const alerts = loadAlerts()
 
-    for (let alert of alerts) {
-        if (alert.triggered) continue
+    // Get unique symbols that still need checking
+    const symbols = [...new Set(
+        alerts
+            .filter(a => !a.triggered)
+            .map(a => a.symbol)
+    )]
 
+    for (let symbol of symbols) {
         try {
             const response = await axios.get(
-                `https://www.alphavantage.co/query`,
+                "https://www.alphavantage.co/query",
                 {
                     params: {
                         function: "GLOBAL_QUOTE",
-                        symbol: alert.symbol,
+                        symbol: symbol,
                         apikey: process.env.ALPHA_VANTAGE_KEY
                     }
                 }
             )
 
+            if (!response.data["Global Quote"]) {
+                console.log("Alpha Vantage limit or error:", response.data)
+                continue
+            }
+
             const price = parseFloat(response.data["Global Quote"]["05. price"])
 
-            if ((alert.high && price >= alert.high) ||
-                (alert.low && price <= alert.low)) {
+            for (let alert of alerts) {
+                if (alert.symbol !== symbol || alert.triggered) continue
 
-                await sgMail.send({
-                    to: process.env.ALERT_EMAIL,
-                    from: process.env.ALERT_EMAIL,
-                    subject: `Stock Alert: ${alert.symbol}`,
-                    text: `${alert.symbol} triggered at ${price}`
-                })
+                if ((alert.high && price >= alert.high) ||
+                    (alert.low && price <= alert.low)) {
 
-                alert.triggered = true
-                console.log(`${alert.symbol} alert triggered`)
+                    await sgMail.send({
+                        to: process.env.ALERT_EMAIL,
+                        from: process.env.ALERT_EMAIL,
+                        subject: `Stock Alert: ${symbol}`,
+                        text: `${symbol} triggered at ${price}`
+                    })
+
+                    alert.triggered = true
+                    console.log(`${symbol} alert triggered at ${price}`)
+                }
             }
 
         } catch (err) {
-            console.log("Error checking:", alert.symbol)
+            console.log(`Error checking ${symbol}:`, err.message)
         }
     }
 
     saveAlerts(alerts)
 }
 
-// Run every 10 minutes
-cron.schedule('*/10 * * * *', checkPrices)
+// Run every 15 minutes
+cron.schedule('*/15 * * * *', checkPrices)
 
 app.listen(3000, () => console.log("Server running"))
