@@ -104,7 +104,7 @@ async function checkPrices() {
     saveAlerts(alerts)
 }
 
-// Run every 15 minutes
-cron.schedule('*/15 * * * *', checkPrices)
+// Run 4 times per trading hours
+cron.schedule('0 15,17,19,20 * * 1-5', checkPrices)
 
 app.listen(3000, () => console.log("Server running"))
