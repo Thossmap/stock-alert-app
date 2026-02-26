@@ -46,6 +46,28 @@ app.post('/reset/:id', (req, res) => {
     res.json({ success: true })
 })
 
+function isMarketOpen() {
+    const now = new Date()
+
+    // Convert to US Eastern Time
+    const est = new Date(
+        now.toLocaleString("en-US", { timeZone: "America/New_York" })
+    )
+
+    const day = est.getDay()
+    const hour = est.getHours()
+    const minute = est.getMinutes()
+
+    // Weekday check (Mon-Fri)
+    if (day === 0 || day === 6) return false
+
+    // Time between 9:30 and 16:00 ET
+    const afterOpen = (hour > 9 || (hour === 9 && minute >= 30))
+    const beforeClose = (hour < 16)
+
+    return afterOpen && beforeClose
+}
+
 async function checkPrices() {
     const alerts = loadAlerts()
 
