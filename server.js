@@ -71,6 +71,11 @@ function isMarketOpen() {
 async function checkPrices() {
     const alerts = loadAlerts()
 
+if (!isMarketOpen()) {
+    console.log("Market closed — skipping check")
+    return
+}
+    
     // Get unique symbols that still need checking
     const symbols = [...new Set(
         alerts
